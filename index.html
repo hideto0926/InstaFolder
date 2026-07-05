@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>instaFolder — Sort your photos into folders, automatically</title>
+<meta name="description" content="instaFolder scans your photo library and suggests folders using on-device image analysis and metadata — even reading Instagram usernames from screenshots. Review the suggestions, file them into albums, and delete what you don't need to free up space. 100% on-device." />
+<link rel="icon" href="assets/icon.png" />
+<meta property="og:title" content="instaFolder — Sort your photos into folders, automatically" />
+<meta property="og:description" content="On-device photo organizer. Suggests folders from image content + metadata, recognizes Instagram handles, and helps you free up space. Review before you save." />
+<meta property="og:image" content="assets/og.png" />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0b1633" />
+<style>
+  :root{
+    --bg:#0b1633;
+    --card:rgba(255,255,255,.05);
+    --border:rgba(255,255,255,.10);
+    --text:#eef3fb;
+    --muted:#9db0cf;
+    --blue:#3b82f6;
+    --cyan:#22d3ee;
+    --grad:linear-gradient(120deg,#22d3ee,#3b82f6,#818cf8);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  .lang-ja{display:none}
+  body.ja .lang-en{display:none}
+  body.ja .lang-ja{display:initial}
+
+  .bg-glow{position:fixed;inset:0;z-index:-1;overflow:hidden;background:var(--bg)}
+  .bg-glow::before,.bg-glow::after{content:"";position:absolute;border-radius:50%;filter:blur(120px);opacity:.4}
+  .bg-glow::before{width:540px;height:540px;background:#2563eb;top:-180px;left:-140px}
+  .bg-glow::after{width:520px;height:520px;background:#7c3aed;bottom:-200px;right:-140px}
+
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(11,22,51,.62);border-bottom:1px solid var(--border)}
+  .nav{display:flex;align-items:center;gap:14px;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.2px}
+  .brand img{width:34px;height:34px;border-radius:9px}
+  .nav .spacer{flex:1}
+  .nav a.link{color:var(--muted);text-decoration:none;font-size:14px;font-weight:600}
+  .nav a.link:hover{color:var(--text)}
+  .nav a.priv{border:1px solid var(--border);padding:7px 14px;border-radius:999px;color:var(--text)}
+  .nav a.priv:hover{border-color:var(--blue);background:rgba(59,130,246,.14)}
+  .langtoggle{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+  .langtoggle button{background:transparent;color:var(--muted);border:0;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+  .langtoggle button.active{background:var(--grad);color:#06121f}
+
+  .hero{padding:74px 0 30px;text-align:center}
+  .hero img.appicon{width:104px;height:104px;border-radius:24px;box-shadow:0 18px 50px rgba(59,130,246,.4);margin-bottom:24px}
+  .hero h1{font-size:clamp(34px,6vw,62px);line-height:1.08;font-weight:900;letter-spacing:-.5px}
+  .hero h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p.sub{color:var(--muted);font-size:clamp(16px,2.4vw,20px);max-width:680px;margin:18px auto 0}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+  .appstore{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#000;text-decoration:none;padding:12px 20px;border-radius:14px;font-weight:700;transition:transform .15s}
+  .appstore.soon{opacity:.55;pointer-events:none}
+  .appstore svg{width:24px;height:24px}
+  .appstore small{display:block;font-size:10px;font-weight:600;opacity:.7;line-height:1}
+  .appstore b{font-size:18px;line-height:1.15}
+  .ghost{display:inline-flex;align-items:center;padding:12px 20px;border-radius:14px;border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:700;transition:.15s}
+  .ghost:hover{border-color:var(--blue);background:rgba(59,130,246,.14)}
+  .note{margin-top:18px;color:var(--muted);font-size:13px}
+
+  .heroshot{margin:44px auto 0;max-width:320px}
+  .heroshot img{width:100%;border-radius:30px;border:1px solid var(--border);box-shadow:0 28px 70px rgba(0,0,0,.6)}
+
+  .fxwrap{margin:46px 0 8px}
+  .fxgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .fxitem{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border);box-shadow:0 18px 44px rgba(0,0,0,.5)}
+  .fxitem img{width:100%;display:block;aspect-ratio:9/19.5;object-fit:cover;object-position:top}
+  .fxitem span{position:absolute;left:10px;bottom:10px;font-size:12px;font-weight:800;letter-spacing:.3px;background:rgba(11,22,51,.72);backdrop-filter:blur(6px);padding:5px 11px;border-radius:999px;border:1px solid var(--border)}
+  @media(max-width:760px){.fxgrid{grid-template-columns:1fr 1fr}.fxitem:last-child{display:none}}
+
+  section.features{padding:36px 0 10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:46px;align-items:center;margin:70px 0}
+  .row.rev .txt{order:2}
+  .row .shot{display:flex;justify-content:center}
+  .row .shot img{width:100%;max-width:300px;border-radius:24px;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  .tag{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;background:rgba(59,130,246,.18);color:#bcd6ff;padding:5px 11px;border-radius:999px;margin-bottom:14px}
+  .row h2{font-size:clamp(24px,3.4vw,34px);line-height:1.2;font-weight:850;margin-bottom:12px}
+  .row p{color:var(--muted);font-size:16px}
+  .row ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:9px}
+  .row li{display:flex;gap:10px;color:var(--text);font-size:15px}
+  .row li::before{content:"";flex:0 0 auto;width:20px;height:20px;border-radius:6px;background:var(--grad);margin-top:2px;
+    -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/></svg>") center/16px no-repeat;
+    mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/></svg>") center/16px no-repeat}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:54px 0}
+  .gcard{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px}
+  .gcard .ic{font-size:24px;margin-bottom:10px}
+  .gcard h3{font-size:17px;margin-bottom:6px}
+  .gcard p{color:var(--muted);font-size:14px}
+
+  .section-head{text-align:center;max-width:680px;margin:0 auto}
+  .section-head h2{font-size:clamp(26px,4vw,38px);font-weight:900;letter-spacing:-.3px}
+  .section-head p{color:var(--muted);margin-top:10px}
+
+  .final{text-align:center;padding:72px 0;margin-top:30px}
+  .final h2{font-size:clamp(26px,4vw,40px);font-weight:900;margin-bottom:10px}
+  .final p{color:var(--muted);margin-bottom:26px}
+
+  footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px}
+  .foot{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center}
+  footer a{color:var(--muted);text-decoration:none}
+  footer a:hover{color:var(--text)}
+  .foot .spacer{flex:1}
+
+  @media(max-width:760px){
+    .row{grid-template-columns:1fr;gap:24px;margin:54px 0}
+    .row.rev .txt{order:0}
+    .nav a.link{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand"><img src="assets/icon.png" alt="instaFolder" /> instaFolder</div>
+    <div class="spacer"></div>
+    <a class="link" href="#features"><span class="lang-en">Features</span><span class="lang-ja">特長</span></a>
+    <a class="link priv" href="privacy.html"><span class="lang-en">Privacy</span><span class="lang-ja">プライバシー</span></a>
+    <div class="langtoggle">
+      <button id="btn-en" onclick="setLang('en')">EN</button>
+      <button id="btn-ja" onclick="setLang('ja')">日本語</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <img class="appicon" src="assets/icon.png" alt="instaFolder icon" />
+  <h1>
+    <span class="lang-en">Sort your photos <span class="grad">into folders</span>.</span>
+    <span class="lang-ja">写真を、<span class="grad">フォルダへ</span>自動整理。</span>
+  </h1>
+  <p class="sub">
+    <span class="lang-en">instaFolder scans your library and suggests a folder for every photo — from the image itself and its metadata, even reading Instagram usernames off screenshots. Check the suggestions, file them into albums, and clear out what you don't need.</span>
+    <span class="lang-ja">instaFolder は、ライブラリを解析して写真ごとに「おすすめフォルダ」を提案します。画像そのものとメタデータから判定し、スクショの Instagram ユーザー名まで読み取ります。候補を確認してアルバムに振り分け、不要な写真は削除して容量もスッキリ。</span>
+  </p>
+  <div class="cta">
+    <span class="appstore soon">
+      <svg viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zM255.4 92.1c30.5-36.2 27.7-69.2 26.8-81.1-26.9 1.6-58 18.4-75.7 39.1-19.5 22.2-31 49.6-28.5 81 29.1 2.2 55.6-12.8 77.4-39z"/></svg>
+      <span><small class="lang-en">Coming soon to the</small><small class="lang-ja">近日公開</small><b>App Store</b></span>
+    </span>
+    <a class="ghost" href="#features"><span class="lang-en">See features ↓</span><span class="lang-ja">特長を見る ↓</span></a>
+  </div>
+  <p class="note">
+    <span class="lang-en">100% on-device · Review before you save · Free up space by deleting clutter</span>
+    <span class="lang-ja">すべて端末内で処理 · 保存前に確認できる · 不要な写真を消して容量を解放</span>
+  </p>
+
+  <div class="heroshot"><img src="assets/shot3.jpg" alt="instaFolder recommended folders" /></div>
+
+  <!-- SHOWCASE -->
+  <div class="fxwrap">
+    <div class="fxgrid">
+      <div class="fxitem"><img src="assets/shot3.jpg" alt="Folder suggestions" loading="lazy" /><span class="lang-en">Folder suggestions</span><span class="lang-ja">おすすめフォルダ</span></div>
+      <div class="fxitem"><img src="assets/shot1.jpg" alt="Detected handle & metadata" loading="lazy" /><span class="lang-en">Why it matched</span><span class="lang-ja">判定の根拠</span></div>
+      <div class="fxitem"><img src="assets/shot4.jpg" alt="Free up space" loading="lazy" /><span class="lang-en">Free up space</span><span class="lang-ja">容量を解放</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features wrap" id="features">
+
+  <!-- 1 -->
+  <div class="row">
+    <div class="txt">
+      <span class="tag"><span class="lang-en">Auto-sort</span><span class="lang-ja">自動仕分け</span></span>
+      <h2><span class="lang-en">A folder for every photo, suggested for you</span><span class="lang-ja">写真ごとに、おすすめフォルダを提案</span></h2>
+      <p><span class="lang-en">instaFolder analyzes each photo on your device and proposes a folder name — People, Landscapes, Documents, Interior, Vehicles and more — grouped and ready to review.</span>
+         <span class="lang-ja">端末内で写真を1枚ずつ解析し、フォルダ名を提案します。People・Landscapes・Documents・Interior・Vehicles… 種類ごとにまとめて、すぐに確認できます。</span></p>
+      <ul>
+        <li><span class="lang-en">Classifies by image content and EXIF / XMP metadata</span><span class="lang-ja">画像の内容と EXIF / XMP メタデータで分類</span></li>
+        <li><span class="lang-en">Reads Instagram usernames from screenshots (insta-…)</span><span class="lang-ja">スクショの Instagram ユーザー名を読み取り（insta-…）</span></li>
+        <li><span class="lang-en">Marks folders that already exist as an album</span><span class="lang-ja">既存アルバムと同名のフォルダには目印（✅）</span></li>
+      </ul>
+    </div>
+    <div class="shot"><img src="assets/shot3.jpg" alt="Recommended folders list" loading="lazy" /></div>
+  </div>
+
+  <!-- 2 -->
+  <div class="row rev">
+    <div class="txt">
+      <span class="tag"><span class="lang-en">Review &amp; confirm</span><span class="lang-ja">確認して確定</span></span>
+      <h2><span class="lang-en">Check it before you commit</span><span class="lang-ja">保存する前に、しっかり確認</span></h2>
+      <p><span class="lang-en">Tap a folder to see its photos, or tap a photo to see the full image and exactly why it matched — the detected handle, screenshot flag, and metadata. Then save to a new or existing album.</span>
+         <span class="lang-ja">フォルダをタップして中身を確認、写真をタップすれば拡大画像と「なぜその候補になったか」（検出したユーザー名・スクショ判定・メタデータ）まで見られます。納得したら新規／既存アルバムへ保存。</span></p>
+      <ul>
+        <li><span class="lang-en">Create a new album, or add to an existing one</span><span class="lang-ja">新規アルバム作成 or 既存アルバムに追加</span></li>
+        <li><span class="lang-en">Merge similar folder names in one tap</span><span class="lang-ja">似た名前のフォルダをまとめて統合保存</span></li>
+        <li><span class="lang-en">Nothing is moved until you confirm</span><span class="lang-ja">確定するまで写真は動きません</span></li>
+      </ul>
+    </div>
+    <div class="shot"><img src="assets/shot2.jpg" alt="Confirm and save" loading="lazy" /></div>
+  </div>
+
+  <!-- 3 -->
+  <div class="row">
+    <div class="txt">
+      <span class="tag"><span class="lang-en">Free up space</span><span class="lang-ja">容量を解放</span></span>
+      <h2><span class="lang-en">Tidy up and reclaim storage</span><span class="lang-ja">整理しながら、容量を取り戻す</span></h2>
+      <p><span class="lang-en">Select multiple photos at once to delete them from your device or move them into Apple's Hidden album. Sort the keepers, clear the clutter — all in the same flow.</span>
+         <span class="lang-ja">複数の写真をまとめて選び、デバイスから削除、または iPhone の「非表示」フォルダへ移動。残すものは振り分け、いらないものは一掃、同じ画面で完結します。</span></p>
+      <ul>
+        <li><span class="lang-en">Multi-select with tap or drag</span><span class="lang-ja">タップ・ドラッグで複数選択</span></li>
+        <li><span class="lang-en">Delete from device or move to Hidden</span><span class="lang-ja">デバイスから削除 / 非表示フォルダへ移動</span></li>
+        <li><span class="lang-en">Pinch the grid to fit more (or fewer) photos</span><span class="lang-ja">グリッドはピンチで表示枚数を変更</span></li>
+      </ul>
+    </div>
+    <div class="shot"><img src="assets/shot4.jpg" alt="Multi-select delete" loading="lazy" /></div>
+  </div>
+</section>
+
+<!-- HIGHLIGHTS -->
+<section class="wrap">
+  <div class="section-head">
+    <h2><span class="lang-en">Smart, private, effortless</span><span class="lang-ja">かしこく、プライベートに、手間なく</span></h2>
+    <p><span class="lang-en">Everything runs on your iPhone.</span><span class="lang-ja">すべての処理は iPhone の中で完結します。</span></p>
+  </div>
+  <div class="grid">
+    <div class="gcard"><div class="ic">🗂️</div>
+      <h3><span class="lang-en">Smart folders</span><span class="lang-ja">かしこいフォルダ分け</span></h3>
+      <p><span class="lang-en">Image analysis + metadata suggest a folder for every photo.</span><span class="lang-ja">画像解析＋メタデータで、写真ごとに最適なフォルダを提案。</span></p>
+    </div>
+    <div class="gcard"><div class="ic">🔎</div>
+      <h3><span class="lang-en">Handle detection</span><span class="lang-ja">ユーザー名を検出</span></h3>
+      <p><span class="lang-en">Reads the username from Instagram-style screenshots.</span><span class="lang-ja">Instagram風スクショから投稿者名を読み取り。</span></p>
+    </div>
+    <div class="gcard"><div class="ic">✅</div>
+      <h3><span class="lang-en">You decide</span><span class="lang-ja">確定はあなた</span></h3>
+      <p><span class="lang-en">Suggestions only — you confirm before anything moves.</span><span class="lang-ja">あくまで候補。確定するまで写真は動きません。</span></p>
+    </div>
+    <div class="gcard"><div class="ic">🧹</div>
+      <h3><span class="lang-en">Free up space</span><span class="lang-ja">容量を解放</span></h3>
+      <p><span class="lang-en">Delete or hide unneeded photos as you organize.</span><span class="lang-ja">整理しながら不要な写真を削除・非表示に。</span></p>
+    </div>
+    <div class="gcard"><div class="ic">🔒</div>
+      <h3><span class="lang-en">On-device</span><span class="lang-ja">端末内で完結</span></h3>
+      <p><span class="lang-en">Your photos never leave your phone for analysis.</span><span class="lang-ja">解析のために写真が外部へ送られることはありません。</span></p>
+    </div>
+    <div class="gcard"><div class="ic">👑</div>
+      <h3><span class="lang-en">Free, with PRO</span><span class="lang-ja">無料＋PRO</span></h3>
+      <p><span class="lang-en">Free to use with ads; PRO removes ads and caches more.</span><span class="lang-ja">広告つきで無料。PRO で広告を非表示＆キャッシュ増量。</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section class="final wrap">
+  <h2><span class="lang-en">Bring order to your camera roll.</span><span class="lang-ja">カメラロールに、秩序を。</span></h2>
+  <p><span class="lang-en">instaFolder is coming soon to the App Store.</span><span class="lang-ja">instaFolder は近日 App Store で公開予定です。</span></p>
+  <div class="cta">
+    <a class="ghost" href="https://hideto0926.github.io/" target="_blank" rel="noopener"><span class="lang-en">More from the developer →</span><span class="lang-ja">開発者の他のアプリ →</span></a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="brand"><img src="assets/icon.png" alt="" style="width:26px;height:26px;border-radius:7px" /> instaFolder</div>
+    <div class="spacer"></div>
+    <a href="privacy.html"><span class="lang-en">Privacy Policy</span><span class="lang-ja">プライバシーポリシー</span></a>
+    <a href="https://hideto0926.github.io/" target="_blank" rel="noopener"><span class="lang-en">Developer</span><span class="lang-ja">開発者</span></a>
+    <a href="mailto:hideto0926@gmail.com"><span class="lang-en">Contact</span><span class="lang-ja">お問い合わせ</span></a>
+  </div>
+  <div class="wrap" style="margin-top:14px;opacity:.7">© instaFolder. All rights reserved.</div>
+</footer>
+
+<script>
+  function setLang(l){
+    document.body.classList.toggle('ja', l==='ja');
+    document.documentElement.lang = l;
+    document.getElementById('btn-en').classList.toggle('active', l==='en');
+    document.getElementById('btn-ja').classList.toggle('active', l==='ja');
+    try{ localStorage.setItem('if_lang', l); }catch(e){}
+  }
+  (function(){
+    var saved=null; try{ saved=localStorage.getItem('if_lang'); }catch(e){}
+    var l = saved || ((navigator.language||'en').toLowerCase().startsWith('ja') ? 'ja' : 'en');
+    setLang(l);
+  })();
+</script>
+</body>
+</html>
